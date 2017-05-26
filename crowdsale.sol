@@ -37,11 +37,27 @@ contract Crowdsale {
         soldTokensCounter += soldTokens;
         tokenRew.transfer(msg.sender, soldTokens);
         FundTransfer(msg.sender, amount, true);
+        if (soldTokensCounter >= 1666666 && benefAddress.send(amount)) {
+            FundTransfer(benefAddress, amount, false);
+        }
     }
 
-    modifier afterDeadline() {if (now >= deadline) _;}
-    function safeWithdrawal() afterDeadline {
-        if (benefAddress == msg.sender) {
+    /*modifier afterDeadline() {if (now >= deadline) _;}*/
+    function safeWithdrawal() {
+        if (soldTokensCounter < 1666666) {
+            uint amount = balanceOf[msg.sender];
+            balanceOf[msg.sender] = 0;
+            if (amount > 0) {
+                if (msg.sender.send(amount)) {
+                    FundTransfer(msg.sender, amount, false);
+                } else {
+                    balanceOf[msg.sender] = amount;
+                }
+            }
+        }
+
+
+        if (soldTokensCounter >= 1666666 && benefAddress == msg.sender) {
             if (benefAddress.send(raisedAmount)) {
                 FundTransfer(benefAddress, raisedAmount, false);
             } 

@@ -4,7 +4,8 @@ contract tokenRecipient { function receiveApproval(address _from, uint256 _value
 
 contract OPL {
     string public standard = 'ERC20';
-    string public name;
+    string public ContractName;
+    string public version = 'v0.1';
     string public symbol;
     uint8 public decimals;
     uint256 public totalSupply;
@@ -25,7 +26,7 @@ contract OPL {
         ) {
         balanceOf[msg.sender] = initialSupply;             
         totalSupply = initialSupply;                        
-        name = tokenName;                                   
+        ContractName = tokenName;                                   
         symbol = tokenSymbol;                          
         decimals = decimalUnits;                            
     }
