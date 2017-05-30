@@ -1,9 +1,8 @@
 # OnPlace Inc. Crowdsale & OPL Token Source Code
-[![N|Solid](https://cldup.com/yVS-UV5Lhf.png)](http://investments.onplace.io/ico)
+[![N|Solid](https://etherscan.io/token/0x2Fd8019ce2AAc3bf9DB18D851A57EFe1a6151BBF)
 
-### 1 OPL price == ~ $0.3
+
 > OPL Token
-
 
 1. During the ICO, OnPlace Inc. is going to sell 10.000.000 OPL Tokens for $3.000.000 in ETH. OPL Token cannot be split. 
 
