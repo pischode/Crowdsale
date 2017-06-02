@@ -4,93 +4,101 @@ pragma solidity ^0.4.8;
 contract token {function transfer(address receiver, uint amount){ }}
 
 contract Crowdsale {
-    address public beneficiary;
-    uint public minimumTarget; uint public maximumTarget; uint public amountRaised; uint public deadline; uint public price = 0.0016 ether;
-    token public tokenReward;
+    uint public amountRaised; uint public resAmount; uint public soldTokens;
     mapping(address => uint256) public balanceOf;
-    bool public minimumTargetReached = false;
     event GoalReached(address beneficiary, uint amountRaised);
     event FundTransfer(address backer, uint amount, bool isContribution);
-    bool crowdsaleClosed = false;
+    bool public crowdsaleClosed = true;
+    bool public minimumTargetReached = false;
 
-    /* data structure to hold information about campaign contributors */
+    // initialization
+    address public beneficiary = /*_*/;/*ifSuccessfulSendTo*/
+    uint public price = /*_*/ ether;/*costOfEachToken*/
+    uint public minimumTarget = /*_*/ * price;/*minimumTargetInTokens*/
+    uint public maximumTarget = /*_*/ * price;/*maximumTargetInTokens*/
+    uint public deadline =  now + /*_*/ * 1 minutes;/*durationInMinutes*/
+    token public tokenReward = token(/*_*/);/*addressOfTokenUsedAsReward*/
 
-    /*  at initialization, setup the owner */
-    function Crowdsale(
-        address ifSuccessfulSendTo,
-        uint minimumTargetInEthers,
-        uint maximumTargetInEthers,
-        uint durationInMinutes,
-        //uint etherCostOfEachToken,
-        token addressOfTokenUsedAsReward
-    ) {
-        beneficiary = ifSuccessfulSendTo;
-        minimumTarget = minimumTargetInEthers * price;
-        maximumTarget = maximumTargetInEthers * price;
-        deadline = now + durationInMinutes * 1 minutes;
-        //price = etherCostOfEachToken * 1 ether;
-        tokenReward = token(addressOfTokenUsedAsReward);
-    }
 
     // the function without name is the default function that is called whenever anyone sends funds to a contract
     function () payable {
-        if (crowdsaleClosed || msg.value % price != 0 || (maximumTarget - amountRaised) < msg.value) throw;
-
+        if (crowdsaleClosed || (maximumTarget - amountRaised) < msg.value) throw;
         uint amount = msg.value;
         balanceOf[msg.sender] += amount;
         amountRaised += amount;
+        resAmount += amount;
+        soldTokens += amount / price;
         tokenReward.transfer(msg.sender, amount / price);
         FundTransfer(msg.sender, amount, true);
 
         if (amountRaised >= minimumTarget && !minimumTargetReached) {
             minimumTargetReached = true;
+            GoalReached(beneficiary, minimumTarget);
         }
 
+        // funds are sending to beneficiary account after minimumTarget will be reached
         if (minimumTargetReached) {
-            if (beneficiary.send(amount)){
+            if (beneficiary.send(amount)) {
                 FundTransfer(beneficiary, amount, false);
+                resAmount -= amount;
             }
         }
     }
 
+    // dev function for withdraw any amount from raised funds (activate only if minimumTarget is reached)
     function devWithdrawal(uint num, uint den) {
         if (!minimumTargetReached || !(beneficiary == msg.sender)) throw;
         uint wAmount = num / den;
         if (beneficiary.send(wAmount)) {
             FundTransfer(beneficiary, wAmount, false);
+            resAmount -= wAmount;
         }
     }
 
+    // dev function for withdraw amount, which be reserved by minimumTarget (activate only if minimumTarget is reached)
+    function devResWithdrawal() {
+        if (!minimumTargetReached || !(beneficiary == msg.sender)) throw;
+        if (beneficiary.send(resAmount)) {
+            FundTransfer(beneficiary, resAmount, false);
+            resAmount -= resAmount;
+        }
+    }
+
+    // dev function for close crowdsale  
     function closeCrowdsale(bool closeType) {
          if (beneficiary == msg.sender) {
             crowdsaleClosed = closeType;
          }
     }
 
-    function returnTokens(uint tokensAmount) {
-        if (!crowdsaleClosed) throw;
-        if (beneficiary == msg.sender){
-            tokenReward.transfer(beneficiary, tokensAmount);
-        }
-    }
-
 
     modifier afterDeadline() { if (now >= deadline) _; }
 
-    // checks if the goal or time limit has been reached and ends the campaign
-    function checkTargetReached() {
-        if (amountRaised >= minimumTarget){
+    // checks if the minimumTarget has been reached
+    function checkTargetReached() afterDeadline {
+        if (amountRaised >= minimumTarget) {
             minimumTargetReached = true;
         }
     }
 
-    function safeWithdrawal() {
-        if (!minimumTargetReached) {
+    // function for return non sold tokens to dev account after crowdsale
+    function returnTokens(uint tokensAmount) afterDeadline {
+        if (!crowdsaleClosed) throw;
+        if (beneficiary == msg.sender) {
+            tokenReward.transfer(beneficiary, tokensAmount);
+        }
+    }
+
+    // return your funds after deadline if minimumTarget is not reached (activate if crowdsale close)
+    function safeWithdrawal() afterDeadline {
+        if (!crowdsaleClosed) throw;
+        if (!minimumTargetReached && crowdsaleClosed) {
             uint amount = balanceOf[msg.sender];
             balanceOf[msg.sender] = 0;
             if (amount > 0) {
                 if (msg.sender.send(amount)) {
                     FundTransfer(msg.sender, amount, false);
+                    resAmount -= amount;
                 } else {
                     balanceOf[msg.sender] = amount;
                 }
